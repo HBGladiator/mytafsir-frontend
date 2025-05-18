@@ -1,9 +1,14 @@
 import { useState } from 'react';
 
+interface Message {
+  sender: 'user' | 'ai';
+  text: string;
+}
+
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
 
   const handleUpload = async () => {
@@ -30,11 +35,15 @@ export default function Home() {
   };
 
   const handleAsk = async () => {
-    if (!question.trim()) return alert("Please enter a question.");
+    if (!question.trim()) return;
     const formData = new FormData();
     formData.append('question', question);
 
+    const userMessage: Message = { sender: 'user', text: question };
+    setMessages((prev) => [...prev, userMessage]);
+    setQuestion('');
     setLoading(true);
+
     try {
       const res = await fetch('https://mytafsir-backend.onrender.com/ask', {
         method: 'POST',
@@ -42,53 +51,78 @@ export default function Home() {
       });
 
       const data = await res.json();
-      setAnswer(data.answer || 'No answer found.');
+      const aiMessage: Message = { sender: 'ai', text: data.answer || 'No answer found.' };
+      setMessages((prev) => [...prev, aiMessage]);
     } catch {
-      alert('🚫 Error asking the question.');
+      const errorMsg: Message = { sender: 'ai', text: '🚫 Error asking the question.' };
+      setMessages((prev) => [...prev, errorMsg]);
     }
+
     setLoading(false);
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-8">
-      <h1 className="text-4xl font-bold mb-6">🕌 MyTafsir PDF Q&A</h1>
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-between">
+      <div className="w-full max-w-3xl bg-white shadow-md rounded-lg mt-6 mb-4 p-4">
+        <h1 className="text-3xl font-bold mb-4 text-center">📖 MyTafsir AI Q&A</h1>
+        <div className="flex items-center space-x-2 mb-4">
+          <input
+            type="file"
+            accept=".pdf"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="flex-1 border p-2 rounded"
+          />
+          <button
+            onClick={handleUpload}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded"
+          >
+            Upload
+          </button>
+        </div>
+      </div>
 
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-md space-y-4">
-        <input
-          type="file"
-          accept=".pdf"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-          className="w-full"
-        />
-        <button
-          onClick={handleUpload}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded"
-        >
-          Upload PDF
-        </button>
-
-        <input
-          type="text"
-          placeholder="Ask a question..."
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          className="w-full border rounded p-2"
-        />
-        <button
-          onClick={handleAsk}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded"
-        >
-          Ask Question
-        </button>
-
-        {loading && <p className="text-blue-500">⏳ Processing...</p>}
-        {answer && (
-          <div className="mt-4 p-4 border rounded bg-gray-50">
-            <strong className="block mb-2">Answer:</strong>
-            <p>{answer}</p>
+      <div className="flex-1 w-full max-w-3xl overflow-y-auto bg-white rounded-lg shadow p-4 space-y-4 mb-4 max-h-[60vh]">
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`px-4 py-2 rounded-xl max-w-xs ${
+                msg.sender === 'user'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-900'
+              }`}
+            >
+              {msg.text}
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-gray-200 px-4 py-2 rounded-xl max-w-xs text-gray-500 italic">
+              Thinking...
+            </div>
           </div>
         )}
       </div>
-    </main>
+
+      <div className="w-full max-w-3xl bg-white shadow-md rounded-lg p-4 flex items-center space-x-2 sticky bottom-0">
+        <input
+          type="text"
+          placeholder="Type your question..."
+          className="flex-1 border p-2 rounded"
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
+        />
+        <button
+          onClick={handleAsk}
+          className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded"
+        >
+          Ask
+        </button>
+      </div>
+    </div>
   );
 }
