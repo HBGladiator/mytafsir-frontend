@@ -13,7 +13,7 @@ export default function Home() {
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/upload', {
+      const res = await fetch('https://mytafsir-backend.onrender.com/upload', {
         method: 'POST',
         body: formData,
       });
@@ -23,7 +23,7 @@ export default function Home() {
       } else {
         alert('❌ Failed to upload PDF.');
       }
-    } catch (error) {
+    } catch {
       alert('🚫 Backend not reachable.');
     }
     setLoading(false);
@@ -36,14 +36,14 @@ export default function Home() {
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/ask', {
+      const res = await fetch('https://mytafsir-backend.onrender.com/ask', {
         method: 'POST',
         body: formData,
       });
 
       const data = await res.json();
       setAnswer(data.answer || 'No answer found.');
-    } catch (error) {
+    } catch {
       alert('🚫 Error asking the question.');
     }
     setLoading(false);
